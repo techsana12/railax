@@ -10,9 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRailwayState } from "@/hooks/useRailwayState";
 
 export function WhatIfSimulator() {
+  const { trains, simulateAction } = useRailwayState();
   const [simulating, setSimulating] = useState(false);
+  const [actionType, setActionType] = useState<"hold" | "priority" | "route" | "platform">("hold");
+  const [trainId, setTrainId] = useState("12221");
+  const [duration, setDuration] = useState(3);
   const [results, setResults] = useState<{
     totalDelay: number;
     delayChange: number;
@@ -23,12 +28,10 @@ export function WhatIfSimulator() {
   const runSimulation = () => {
     setSimulating(true);
     setTimeout(() => {
-      setResults({
-        totalDelay: 45,
-        delayChange: -12,
-        affectedTrains: 5,
-        recommendation: "This action reduces total network delay by 21%. Recommended!",
-      });
+      const result = simulateAction(trainId, actionType, duration);
+      if (result) {
+        setResults(result);
+      }
       setSimulating(false);
     }, 1500);
   };
@@ -52,7 +55,7 @@ export function WhatIfSimulator() {
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Action Type</label>
-          <Select defaultValue="hold">
+          <Select value={actionType} onValueChange={(val) => setActionType(val as any)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -67,14 +70,16 @@ export function WhatIfSimulator() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Train Number</label>
-          <Select defaultValue="12221">
+          <Select value={trainId} onValueChange={setTrainId}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="12221">12221 - Rajdhani</SelectItem>
-              <SelectItem value="12302">12302 - Express</SelectItem>
-              <SelectItem value="17045">17045 - Freight</SelectItem>
+              {trains.map((train) => (
+                <SelectItem key={train.id} value={train.trainNumber}>
+                  {train.trainNumber} - {train.trainName}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -95,7 +100,7 @@ export function WhatIfSimulator() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">Duration</label>
-          <Select defaultValue="3">
+          <Select value={duration.toString()} onValueChange={(val) => setDuration(Number(val))}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -103,6 +108,7 @@ export function WhatIfSimulator() {
               <SelectItem value="3">3 minutes</SelectItem>
               <SelectItem value="5">5 minutes</SelectItem>
               <SelectItem value="10">10 minutes</SelectItem>
+              <SelectItem value="15">15 minutes</SelectItem>
             </SelectContent>
           </Select>
         </div>

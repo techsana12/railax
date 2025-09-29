@@ -1,14 +1,6 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface Train {
-  id: string;
-  number: string;
-  type: "express" | "passenger" | "freight";
-  position: number; // 0-100 percentage along track
-  direction: "east" | "west";
-}
+import { useRailwayState } from "@/hooks/useRailwayState";
 
 const stations = [
   { name: "Delhi", position: 0 },
@@ -24,30 +16,7 @@ const trainColors = {
 };
 
 export function RailwayMap() {
-  const [trains, setTrains] = useState<Train[]>([
-    { id: "1", number: "12302", type: "express", position: 45, direction: "east" },
-    { id: "2", number: "12221", type: "passenger", position: 30, direction: "east" },
-    { id: "3", number: "17045", type: "freight", position: 75, direction: "west" },
-    { id: "4", number: "12430", type: "express", position: 15, direction: "east" },
-  ]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTrains((prevTrains) =>
-        prevTrains.map((train) => ({
-          ...train,
-          position:
-            train.direction === "east"
-              ? (train.position + 0.5) % 100
-              : train.position - 0.5 < 0
-              ? 100
-              : train.position - 0.5,
-        }))
-      );
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, []);
+  const { trains, metrics } = useRailwayState();
 
   return (
     <Card className="p-6 bg-gradient-to-br from-card to-muted/20">
@@ -83,24 +52,33 @@ export function RailwayMap() {
         ))}
 
         {/* Trains */}
-        {trains.map((train) => (
-          <div
-            key={train.id}
-            className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 transition-all duration-100"
-            style={{ left: `calc(8% + ${train.position}% * 0.84)` }}
-          >
-            <div className="flex flex-col items-center train-pulse">
-              <div
-                className={`w-6 h-6 ${trainColors[train.type]} rounded-full shadow-lg flex items-center justify-center text-white text-xs font-bold border-2 border-background`}
-              >
-                {train.direction === "east" ? "→" : "←"}
+        {trains.map((train) => {
+          const statusColor =
+            train.status === "on-time"
+              ? "bg-accent"
+              : train.status === "delayed"
+              ? "bg-[hsl(var(--danger))]"
+              : "bg-[hsl(var(--warning))]";
+          
+          return (
+            <div
+              key={train.id}
+              className="absolute top-1/2 transform -translate-y-1/2 -translate-x-1/2 transition-all duration-1000"
+              style={{ left: `calc(8% + ${train.position}% * 0.84)` }}
+            >
+              <div className="flex flex-col items-center train-pulse">
+                <div
+                  className={`w-6 h-6 ${statusColor} rounded-full shadow-lg flex items-center justify-center text-white text-xs font-bold border-2 border-background`}
+                >
+                  {train.status === "held" ? "⏸" : "→"}
+                </div>
+                <p className="text-xs font-medium text-foreground mt-1 bg-background/80 px-1 rounded">
+                  {train.trainNumber}
+                </p>
               </div>
-              <p className="text-xs font-medium text-foreground mt-1 bg-background/80 px-1 rounded">
-                {train.number}
-              </p>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Block Sections */}
         <div className="absolute bottom-4 left-8 right-8 flex justify-between text-xs text-muted-foreground">
@@ -121,11 +99,13 @@ export function RailwayMap() {
         </div>
         <div className="p-3 bg-[hsl(var(--warning))]/10 rounded-lg">
           <p className="text-xs text-muted-foreground">Delayed</p>
-          <p className="text-xl font-bold text-foreground">2</p>
+          <p className="text-xl font-bold text-foreground">
+            {trains.filter((t) => t.status === "delayed").length}
+          </p>
         </div>
         <div className="p-3 bg-accent/10 rounded-lg">
           <p className="text-xs text-muted-foreground">On Time</p>
-          <p className="text-xl font-bold text-foreground">87%</p>
+          <p className="text-xl font-bold text-foreground">{metrics.onTimePerformance.toFixed(0)}%</p>
         </div>
       </div>
     </Card>

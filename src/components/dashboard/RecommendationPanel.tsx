@@ -2,42 +2,8 @@ import { Lightbulb, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface Recommendation {
-  id: string;
-  priority: "high" | "medium" | "low";
-  action: string;
-  reason: string;
-  impact: string;
-  confidence: number;
-}
-
-const recommendations: Recommendation[] = [
-  {
-    id: "1",
-    priority: "high",
-    action: "Hold Train 12221 at Kanpur Central",
-    reason: "To prevent conflict with Express 12302 which is running on time",
-    impact: "Saves 8 minutes total delay across network. Express arrives on time, passenger train delayed by only 3 minutes.",
-    confidence: 94,
-  },
-  {
-    id: "2",
-    priority: "medium",
-    action: "Prioritize Freight 17045 on Block B-7",
-    reason: "Current schedule has buffer time. Can optimize track usage without passenger impact.",
-    impact: "Reduces freight delay by 12 minutes. No impact on passenger services.",
-    confidence: 87,
-  },
-  {
-    id: "3",
-    priority: "low",
-    action: "Adjust Platform allocation at Lucknow",
-    reason: "Better platform spacing improves departure punctuality",
-    impact: "Potential 2-minute improvement in average departure time",
-    confidence: 78,
-  },
-];
+import { useRailwayState, Recommendation } from "@/hooks/useRailwayState";
+import { toast } from "@/hooks/use-toast";
 
 const priorityConfig = {
   high: {
@@ -55,18 +21,51 @@ const priorityConfig = {
 };
 
 export function RecommendationPanel() {
+  const { recommendations, applyRecommendation, dismissRecommendation, simulateAction } = useRailwayState();
+
+  const handleApply = (rec: Recommendation) => {
+    applyRecommendation(rec.id);
+    toast({
+      title: "Action Applied",
+      description: `${rec.action} has been implemented successfully.`,
+    });
+  };
+
+  const handleSimulate = (rec: Recommendation) => {
+    const result = simulateAction(rec.trainId, rec.actionType, 3);
+    if (result) {
+      toast({
+        title: "Simulation Complete",
+        description: `Predicted impact: ${result.delayChange > 0 ? '+' : ''}${result.delayChange} min delay change. ${result.recommendation}`,
+      });
+    }
+  };
+
+  const handleDismiss = (recId: string) => {
+    dismissRecommendation(recId);
+    toast({
+      title: "Recommendation Dismissed",
+      description: "This recommendation has been removed from the list.",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Lightbulb className="h-5 w-5 text-secondary" />
         <h2 className="text-lg font-semibold text-foreground">AI Recommendations</h2>
         <Badge variant="secondary" className="ml-auto bg-primary/10 text-primary">
-          3 Active
+          {recommendations.length} Active
         </Badge>
       </div>
 
       <div className="space-y-3">
-        {recommendations.map((rec) => {
+        {recommendations.length === 0 ? (
+          <Card className="p-6 text-center">
+            <p className="text-muted-foreground">All caught up! No urgent recommendations at the moment.</p>
+          </Card>
+        ) : (
+          recommendations.map((rec) => {
           const config = priorityConfig[rec.priority];
           const Icon = config.icon;
 
@@ -92,13 +91,25 @@ export function RecommendationPanel() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">
+                    <Button 
+                      size="sm" 
+                      className="bg-primary hover:bg-primary/90 text-white"
+                      onClick={() => handleApply(rec)}
+                    >
                       Apply
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleSimulate(rec)}
+                    >
                       Simulate
                     </Button>
-                    <Button size="sm" variant="ghost">
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => handleDismiss(rec.id)}
+                    >
                       Dismiss
                     </Button>
                   </div>
@@ -106,7 +117,8 @@ export function RecommendationPanel() {
               </div>
             </Card>
           );
-        })}
+        })
+        )}
       </div>
 
       <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg">

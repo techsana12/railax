@@ -5,8 +5,11 @@ import { TrainCard } from "@/components/dashboard/TrainCard";
 import { RailwayMap } from "@/components/dashboard/RailwayMap";
 import { RecommendationPanel } from "@/components/dashboard/RecommendationPanel";
 import { WhatIfSimulator } from "@/components/dashboard/WhatIfSimulator";
+import { useRailwayState } from "@/hooks/useRailwayState";
 
 const Index = () => {
+  const { trains, metrics } = useRailwayState();
+
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-background to-muted/30">
       <Sidebar />
@@ -17,32 +20,32 @@ const Index = () => {
           <div className="grid grid-cols-4 gap-4">
             <KPICard
               title="On-Time Performance"
-              value="87.2%"
-              change="3.5% from yesterday"
-              trend="up"
+              value={`${metrics.onTimePerformance.toFixed(1)}%`}
+              change={`${(metrics.onTimePerformance - 87.2).toFixed(1)}% from start`}
+              trend={metrics.onTimePerformance >= 87.2 ? "up" : "neutral"}
               icon={Clock}
               color="success"
             />
             <KPICard
               title="Avg. Delay"
-              value="4.8 min"
-              change="1.2 min improvement"
-              trend="up"
+              value={`${metrics.avgDelay.toFixed(1)} min`}
+              change={`${(4.8 - metrics.avgDelay).toFixed(1)} min improvement`}
+              trend={metrics.avgDelay <= 4.8 ? "up" : "neutral"}
               icon={TrendingUp}
               color="primary"
             />
             <KPICard
               title="Active Trains"
-              value="47"
-              change="8 more than usual"
+              value={metrics.activeTrains.toString()}
+              change="Real-time tracking"
               trend="neutral"
               icon={Activity}
               color="primary"
             />
             <KPICard
               title="AI Optimizations"
-              value="23"
-              change="Today"
+              value={metrics.aiOptimizations.toString()}
+              change="Applied today"
               trend="up"
               icon={Zap}
               color="warning"
@@ -57,39 +60,18 @@ const Index = () => {
             {/* Active Trains */}
             <div className="space-y-4">
               <h2 className="text-lg font-semibold text-foreground">Active Trains</h2>
-              <TrainCard
-                trainNumber="12302"
-                trainName="Rajdhani Express"
-                type="express"
-                status="on-time"
-                currentStation="Kanpur"
-                nextStation="Lucknow"
-              />
-              <TrainCard
-                trainNumber="12221"
-                trainName="Duronto Express"
-                type="express"
-                status="held"
-                currentStation="Kanpur"
-                nextStation="Lucknow"
-              />
-              <TrainCard
-                trainNumber="17045"
-                trainName="Goods Train"
-                type="freight"
-                status="delayed"
-                currentStation="Lucknow"
-                nextStation="Gorakhpur"
-                delay={12}
-              />
-              <TrainCard
-                trainNumber="14258"
-                trainName="Passenger"
-                type="passenger"
-                status="on-time"
-                currentStation="Delhi"
-                nextStation="Kanpur"
-              />
+              {trains.map((train) => (
+                <TrainCard
+                  key={train.id}
+                  trainNumber={train.trainNumber}
+                  trainName={train.trainName}
+                  type={train.type}
+                  status={train.status}
+                  currentStation={train.currentStation}
+                  nextStation={train.nextStation}
+                  delay={train.delay}
+                />
+              ))}
             </div>
 
             {/* Recommendations Panel */}
